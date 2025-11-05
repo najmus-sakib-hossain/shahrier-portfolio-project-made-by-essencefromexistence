@@ -1,0 +1,56 @@
+DEPLOYMENT CHECKLIST FOR CPANEL
+================================
+
+PRE-DEPLOYMENT
+--------------
+☐ Run: npm run build
+☐ Verify: public/build/manifest.json exists
+☐ Check: All .jsx and .tsx files are in manifest
+☐ Test locally with production build
+
+CPANEL UPLOAD
+-------------
+☐ Upload all files except node_modules
+☐ Upload public/build/ directory with all assets
+☐ Ensure .htaccess is in public/ directory
+
+SERVER SETUP
+------------
+☐ Point domain to public/ directory
+☐ Create/configure .env file
+☐ Set APP_ENV=production
+☐ Set APP_DEBUG=false
+☐ Configure database credentials
+☐ Run: composer install --no-dev --optimize-autoloader
+☐ Run: chmod -R 755 storage
+☐ Run: chmod -R 755 bootstrap/cache
+☐ Run: php artisan key:generate (if needed)
+☐ Run: php artisan migrate --force
+☐ Run: php artisan config:cache
+☐ Run: php artisan route:cache
+☐ Run: php artisan view:cache
+☐ Run: php artisan optimize
+
+VERIFICATION
+------------
+☐ Visit homepage - should load without errors
+☐ Test .jsx pages (Events, Videos, Technology, etc.)
+☐ Test .tsx pages (Admin, Dashboard, etc.)
+☐ Check browser console for errors
+☐ Verify assets are loading from /build/assets/
+
+TROUBLESHOOTING
+---------------
+If 500 errors occur:
+1. Check storage/logs/laravel.log
+2. Temporarily set APP_DEBUG=true
+3. Clear all caches: php artisan optimize:clear
+4. Rebuild: npm run build
+5. Re-upload public/build/
+
+CRITICAL FILES CHANGED
+----------------------
+✓ resources/views/app.blade.php - Removed hardcoded .tsx extension
+✓ resources/js/app.tsx - Updated glob pattern to handle .tsx and .jsx
+✓ resources/js/ssr.tsx - Updated glob pattern to handle .tsx and .jsx
+✓ tsconfig.json - Added .jsx files to include pattern
