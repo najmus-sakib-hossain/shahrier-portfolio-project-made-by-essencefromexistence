@@ -16,6 +16,7 @@ import {
   BarChart3,
   Layout,
   GalleryVerticalEnd,
+  MessageSquare,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -203,6 +204,17 @@ const data = {
         {
           title: "Add Content",
           url: "/admin/entrepreneurship-content/create",
+        },
+      ],
+    },
+    {
+      title: "Contact Messages",
+      url: "/admin/contact-page-settings",
+      icon: MessageSquare,
+      items: [
+        {
+          title: "Page Settings",
+          url: "/admin/contact-page-settings",
         },
       ],
     },

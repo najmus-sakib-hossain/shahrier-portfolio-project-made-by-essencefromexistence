@@ -28,6 +28,8 @@ use App\Http\Controllers\Admin\AwardController;
 use App\Http\Controllers\Admin\CertificateController;
 use App\Http\Controllers\Admin\EntrepreneurshipContentController;
 use App\Http\Controllers\Admin\IndexPageController;
+use App\Http\Controllers\Admin\ContactController as AdminContactController;
+use App\Http\Controllers\Admin\ContactPageSettingController;
 use App\Http\Controllers\Api\ActivityController;
 
 // Frontend Routes
@@ -78,6 +80,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('awards', AwardController::class);
         Route::resource('certificates', CertificateController::class);
         Route::resource('entrepreneurship-content', EntrepreneurshipContentController::class);
+        Route::resource('contacts', AdminContactController::class)->only(['index', 'show', 'update', 'destroy']);
+        
+        // Contact Page Settings
+        Route::get('contact-page-settings', [ContactPageSettingController::class, 'index'])->name('contact-page-settings.index');
+        Route::post('contact-page-settings/update', [ContactPageSettingController::class, 'update'])->name('contact-page-settings.update');
         
         // Index Page Management
         Route::get('index-page', [IndexPageController::class, 'index'])->name('index-page.index');

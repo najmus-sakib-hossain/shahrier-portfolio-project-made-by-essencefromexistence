@@ -37,8 +37,11 @@ class IndexPageController extends Controller
             'button_text' => 'required|string|max:255',
             'button_link' => 'required|string|max:255',
             'hero_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
-            'is_active' => 'boolean',
+            'is_active' => 'nullable|boolean',
         ]);
+
+        // Ensure is_active is boolean
+        $validated['is_active'] = $request->has('is_active') ? (bool)$request->is_active : true;
 
         $indexPage = IndexPageSetting::first();
         
@@ -48,13 +51,18 @@ class IndexPageController extends Controller
 
         // Handle hero image upload
         if ($request->hasFile('hero_image')) {
-            // Delete old image if exists
-            if ($indexPage->hero_image && Storage::disk('public')->exists($indexPage->hero_image)) {
-                Storage::disk('public')->delete($indexPage->hero_image);
+            // Delete old image if exists and not a default asset
+            if ($indexPage->hero_image && 
+                !str_starts_with($indexPage->hero_image, '/assets/') && 
+                Storage::disk('public')->exists(str_replace('/storage/', '', $indexPage->hero_image))) {
+                Storage::disk('public')->delete(str_replace('/storage/', '', $indexPage->hero_image));
             }
 
             $path = $request->file('hero_image')->store('index-page', 'public');
             $validated['hero_image'] = '/storage/' . $path;
+        } else {
+            // Don't update hero_image if no new file is uploaded
+            unset($validated['hero_image']);
         }
 
         $indexPage->fill($validated);

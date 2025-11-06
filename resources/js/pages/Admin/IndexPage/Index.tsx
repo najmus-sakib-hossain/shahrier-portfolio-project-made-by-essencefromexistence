@@ -62,10 +62,13 @@ export default function IndexPageManagement({ indexPage }: Props) {
         e.preventDefault();
         post("/admin/index-page/update", {
             forceFormData: true,
+            preserveScroll: true,
             onSuccess: () => {
-                reset();
                 setPreviewImage(null);
             },
+            onError: (errors) => {
+                console.error('Update errors:', errors);
+            }
         });
     };
 
