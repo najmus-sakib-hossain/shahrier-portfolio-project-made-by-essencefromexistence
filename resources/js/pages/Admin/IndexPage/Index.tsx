@@ -146,7 +146,13 @@ export default function IndexPageManagement({ indexPage }: Props) {
             console.error('No file to append!');
         }
 
-        // Use router.post with manual FormData
+        // Debug: Log FormData contents
+        console.log('FormData contents:');
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ', pair[1]);
+        }
+
+        // Use router.post with manual FormData (don't set Content-Type - browser sets it with boundary)
         router.post("/admin/index-page/logos", formData, {
             preserveScroll: true,
             onSuccess: () => {
