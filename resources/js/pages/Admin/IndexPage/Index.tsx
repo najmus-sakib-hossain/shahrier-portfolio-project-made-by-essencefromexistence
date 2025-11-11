@@ -110,6 +110,20 @@ export default function IndexPageManagement({ indexPage }: Props) {
 
     const handleAddLogo = (e: FormEvent) => {
         e.preventDefault();
+        
+        // Debug: Log form data
+        console.log('Submitting logo with data:', {
+            name: logoForm.data.name,
+            display_order: logoForm.data.display_order,
+            is_active: logoForm.data.is_active,
+            has_file: logoForm.data.logo_path !== null,
+            file_info: logoForm.data.logo_path ? {
+                name: logoForm.data.logo_path.name,
+                size: logoForm.data.logo_path.size,
+                type: logoForm.data.logo_path.type,
+            } : null
+        });
+        
         logoForm.post("/admin/index-page/logos", {
             forceFormData: true,
             preserveScroll: true,
@@ -119,6 +133,14 @@ export default function IndexPageManagement({ indexPage }: Props) {
             },
             onError: (errors: any) => {
                 console.error('Logo add errors:', errors);
+                console.error('Error details:', JSON.stringify(errors, null, 2));
+                // Display a user-friendly alert with the error
+                if (typeof errors === 'object') {
+                    const errorMessages = Object.entries(errors)
+                        .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+                        .join('\n');
+                    alert('Failed to add logo:\n\n' + errorMessages);
+                }
             }
         });
     };

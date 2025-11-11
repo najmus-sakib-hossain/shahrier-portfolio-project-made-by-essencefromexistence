@@ -73,12 +73,38 @@ class IndexPageController extends Controller
 
     public function storeLogo(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'logo_path' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
-            'display_order' => 'nullable|integer',
-            'is_active' => 'nullable|boolean',
+        // Log incoming request for debugging
+        \Log::info('Logo upload attempt', [
+            'has_file' => $request->hasFile('logo_path'),
+            'file_info' => $request->hasFile('logo_path') ? [
+                'name' => $request->file('logo_path')->getClientOriginalName(),
+                'size' => $request->file('logo_path')->getSize(),
+                'mime' => $request->file('logo_path')->getMimeType(),
+            ] : null,
+            'all_data' => $request->except('logo_path'),
         ]);
+
+        // Validate with better error messages
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'logo_path' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
+                'display_order' => 'nullable|integer',
+                'is_active' => 'nullable',
+            ], [
+                'name.required' => 'Logo name is required.',
+                'logo_path.required' => 'Please select a logo image file.',
+                'logo_path.image' => 'The file must be an image.',
+                'logo_path.mimes' => 'The logo must be a file of type: jpeg, png, jpg, gif, svg, webp.',
+                'logo_path.max' => 'The logo file size must not exceed 5MB.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Validation failed for logo upload', [
+                'errors' => $e->errors(),
+                'request_data' => $request->except('logo_path'),
+            ]);
+            throw $e;
+        }
 
         $indexPage = IndexPageSetting::first();
         
@@ -86,13 +112,82 @@ class IndexPageController extends Controller
             return redirect()->back()->with('error', 'Please configure index page settings first.');
         }
 
-        // Ensure is_active is boolean
-        $validated['is_active'] = $request->has('is_active') ? (bool)$request->is_active : true;
+        // Ensure is_active is boolean - handle string 'true'/'false' from FormData
+        $isActive = $request->input('is_active');
+        $validated['is_active'] = $isActive === 'false' || $isActive === false || $isActive === '0' || $isActive === 0 ? false : true;
 
         // Handle logo upload
         if ($request->hasFile('logo_path')) {
-            $path = $request->file('logo_path')->store('index-page/logos', 'public');
-            $validated['logo_path'] = '/storage/' . $path;
+            try {
+                $file = $request->file('logo_path');
+                
+                // Check if file is valid
+                if (!$file->isValid()) {
+                    \Log::error('Invalid file uploaded', [
+                        'error' => $file->getError(),
+                        'error_message' => $file->getErrorMessage(),
+                    ]);
+                    return redirect()->back()->withErrors([
+                        'logo_path' => 'The uploaded file is invalid: ' . $file->getErrorMessage()
+                    ]);
+                }
+
+                // Ensure storage directory exists and is writable
+                $storagePath = storage_path('app/public/index-page/logos');
+                if (!file_exists($storagePath)) {
+                    if (!mkdir($storagePath, 0755, true)) {
+                        \Log::error('Failed to create storage directory', [
+                            'path' => $storagePath,
+                            'parent_writable' => is_writable(dirname($storagePath)),
+                        ]);
+                        return redirect()->back()->withErrors([
+                            'logo_path' => 'Failed to create storage directory. Please check permissions.'
+                        ]);
+                    }
+                }
+
+                // Check if directory is writable
+                if (!is_writable($storagePath)) {
+                    \Log::error('Storage directory is not writable', [
+                        'path' => $storagePath,
+                        'permissions' => substr(sprintf('%o', fileperms($storagePath)), -4),
+                    ]);
+                    return redirect()->back()->withErrors([
+                        'logo_path' => 'Storage directory is not writable. Please set permissions to 755 or 777.'
+                    ]);
+                }
+
+                // Store the file
+                $path = $file->store('index-page/logos', 'public');
+                
+                if (!$path) {
+                    \Log::error('Failed to store logo file', [
+                        'storage_path' => $storagePath,
+                        'is_writable' => is_writable($storagePath),
+                        'file_name' => $file->getClientOriginalName(),
+                        'disk_free_space' => disk_free_space($storagePath),
+                    ]);
+                    return redirect()->back()->withErrors([
+                        'logo_path' => 'Failed to save file. Check storage permissions and disk space.'
+                    ]);
+                }
+
+                $validated['logo_path'] = '/storage/' . $path;
+            } catch (\Exception $e) {
+                \Log::error('Logo upload error: ' . $e->getMessage(), [
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return redirect()->back()->withErrors([
+                    'logo_path' => 'Upload failed: ' . $e->getMessage()
+                ]);
+            }
+        } else {
+            return redirect()->back()->withErrors([
+                'logo_path' => 'No logo file was uploaded.'
+            ]);
         }
 
         $validated['index_page_setting_id'] = $indexPage->id;
@@ -109,25 +204,122 @@ class IndexPageController extends Controller
 
     public function updateLogo(Request $request, IndexPageLogo $logo)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'logo_path' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
-            'display_order' => 'nullable|integer',
-            'is_active' => 'nullable|boolean',
+        // Log incoming request for debugging
+        \Log::info('Logo update attempt', [
+            'logo_id' => $logo->id,
+            'has_file' => $request->hasFile('logo_path'),
+            'file_info' => $request->hasFile('logo_path') ? [
+                'name' => $request->file('logo_path')->getClientOriginalName(),
+                'size' => $request->file('logo_path')->getSize(),
+                'mime' => $request->file('logo_path')->getMimeType(),
+            ] : null,
+            'all_data' => $request->except('logo_path'),
         ]);
 
-        // Ensure is_active is boolean
-        $validated['is_active'] = $request->has('is_active') ? (bool)$request->is_active : $logo->is_active;
+        // Validate with better error messages
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'logo_path' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
+                'display_order' => 'nullable|integer',
+                'is_active' => 'nullable',
+            ], [
+                'name.required' => 'Logo name is required.',
+                'logo_path.image' => 'The file must be an image.',
+                'logo_path.mimes' => 'The logo must be a file of type: jpeg, png, jpg, gif, svg, webp.',
+                'logo_path.max' => 'The logo file size must not exceed 5MB.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Validation failed for logo update', [
+                'errors' => $e->errors(),
+                'logo_id' => $logo->id,
+                'request_data' => $request->except('logo_path'),
+            ]);
+            throw $e;
+        }
+
+        // Ensure is_active is boolean - handle string 'true'/'false' from FormData
+        $isActive = $request->input('is_active');
+        $validated['is_active'] = $isActive === 'false' || $isActive === false || $isActive === '0' || $isActive === 0 ? false : ($isActive ? true : $logo->is_active);
 
         // Handle logo upload
         if ($request->hasFile('logo_path')) {
-            // Delete old logo if exists
-            if ($logo->logo_path && Storage::disk('public')->exists(str_replace('/storage/', '', $logo->logo_path))) {
-                Storage::disk('public')->delete(str_replace('/storage/', '', $logo->logo_path));
-            }
+            try {
+                $file = $request->file('logo_path');
+                
+                // Check if file is valid
+                if (!$file->isValid()) {
+                    \Log::error('Invalid file uploaded for update', [
+                        'error' => $file->getError(),
+                        'error_message' => $file->getErrorMessage(),
+                        'logo_id' => $logo->id,
+                    ]);
+                    return redirect()->back()->withErrors([
+                        'logo_path' => 'The uploaded file is invalid: ' . $file->getErrorMessage()
+                    ]);
+                }
 
-            $path = $request->file('logo_path')->store('index-page/logos', 'public');
-            $validated['logo_path'] = '/storage/' . $path;
+                // Ensure storage directory exists and is writable
+                $storagePath = storage_path('app/public/index-page/logos');
+                if (!file_exists($storagePath)) {
+                    if (!mkdir($storagePath, 0755, true)) {
+                        \Log::error('Failed to create storage directory for update', [
+                            'path' => $storagePath,
+                            'parent_writable' => is_writable(dirname($storagePath)),
+                            'logo_id' => $logo->id,
+                        ]);
+                        return redirect()->back()->withErrors([
+                            'logo_path' => 'Failed to create storage directory. Please check permissions.'
+                        ]);
+                    }
+                }
+
+                // Check if directory is writable
+                if (!is_writable($storagePath)) {
+                    \Log::error('Storage directory is not writable for update', [
+                        'path' => $storagePath,
+                        'permissions' => substr(sprintf('%o', fileperms($storagePath)), -4),
+                        'logo_id' => $logo->id,
+                    ]);
+                    return redirect()->back()->withErrors([
+                        'logo_path' => 'Storage directory is not writable. Please set permissions to 755 or 777.'
+                    ]);
+                }
+
+                // Delete old logo if exists
+                if ($logo->logo_path && Storage::disk('public')->exists(str_replace('/storage/', '', $logo->logo_path))) {
+                    Storage::disk('public')->delete(str_replace('/storage/', '', $logo->logo_path));
+                }
+
+                // Store the file
+                $path = $file->store('index-page/logos', 'public');
+                
+                if (!$path) {
+                    \Log::error('Failed to store logo file during update', [
+                        'storage_path' => $storagePath,
+                        'is_writable' => is_writable($storagePath),
+                        'file_name' => $file->getClientOriginalName(),
+                        'logo_id' => $logo->id,
+                        'disk_free_space' => disk_free_space($storagePath),
+                    ]);
+                    return redirect()->back()->withErrors([
+                        'logo_path' => 'Failed to save file. Check storage permissions and disk space.'
+                    ]);
+                }
+
+                $validated['logo_path'] = '/storage/' . $path;
+            } catch (\Exception $e) {
+                \Log::error('Logo update error: ' . $e->getMessage(), [
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString(),
+                    'logo_id' => $logo->id,
+                ]);
+                return redirect()->back()->withErrors([
+                    'logo_path' => 'Upload failed: ' . $e->getMessage()
+                ]);
+            }
         } else {
             // Don't update logo_path if no new file is uploaded
             unset($validated['logo_path']);
