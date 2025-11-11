@@ -103,12 +103,27 @@ class IndexPageController extends Controller
                 'errors' => $e->errors(),
                 'request_data' => $request->except('logo_path'),
             ]);
+            
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+            
             throw $e;
         }
 
         $indexPage = IndexPageSetting::first();
         
         if (!$indexPage) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please configure index page settings first.'
+                ], 400);
+            }
             return redirect()->back()->with('error', 'Please configure index page settings first.');
         }
 
@@ -127,9 +142,17 @@ class IndexPageController extends Controller
                         'error' => $file->getError(),
                         'error_message' => $file->getErrorMessage(),
                     ]);
-                    return redirect()->back()->withErrors([
-                        'logo_path' => 'The uploaded file is invalid: ' . $file->getErrorMessage()
-                    ]);
+                    
+                    $errorMsg = 'The uploaded file is invalid: ' . $file->getErrorMessage();
+                    if ($request->wantsJson() || $request->ajax()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => $errorMsg,
+                            'errors' => ['logo_path' => [$errorMsg]]
+                        ], 422);
+                    }
+                    
+                    return redirect()->back()->withErrors(['logo_path' => $errorMsg]);
                 }
 
                 // Ensure storage directory exists and is writable
@@ -140,9 +163,17 @@ class IndexPageController extends Controller
                             'path' => $storagePath,
                             'parent_writable' => is_writable(dirname($storagePath)),
                         ]);
-                        return redirect()->back()->withErrors([
-                            'logo_path' => 'Failed to create storage directory. Please check permissions.'
-                        ]);
+                        
+                        $errorMsg = 'Failed to create storage directory. Please check permissions.';
+                        if ($request->wantsJson() || $request->ajax()) {
+                            return response()->json([
+                                'success' => false,
+                                'message' => $errorMsg,
+                                'errors' => ['logo_path' => [$errorMsg]]
+                            ], 500);
+                        }
+                        
+                        return redirect()->back()->withErrors(['logo_path' => $errorMsg]);
                     }
                 }
 
@@ -152,9 +183,17 @@ class IndexPageController extends Controller
                         'path' => $storagePath,
                         'permissions' => substr(sprintf('%o', fileperms($storagePath)), -4),
                     ]);
-                    return redirect()->back()->withErrors([
-                        'logo_path' => 'Storage directory is not writable. Please set permissions to 755 or 777.'
-                    ]);
+                    
+                    $errorMsg = 'Storage directory is not writable. Please set permissions to 755 or 777.';
+                    if ($request->wantsJson() || $request->ajax()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => $errorMsg,
+                            'errors' => ['logo_path' => [$errorMsg]]
+                        ], 500);
+                    }
+                    
+                    return redirect()->back()->withErrors(['logo_path' => $errorMsg]);
                 }
 
                 // Store the file using public_uploads disk (no symlink needed)
@@ -177,9 +216,17 @@ class IndexPageController extends Controller
                         'disk_free_space' => disk_free_space($storagePath),
                         'disk_used' => $disk,
                     ]);
-                    return redirect()->back()->withErrors([
-                        'logo_path' => 'Failed to save file. Check storage permissions and disk space.'
-                    ]);
+                    
+                    $errorMsg = 'Failed to save file. Check storage permissions and disk space.';
+                    if ($request->wantsJson() || $request->ajax()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => $errorMsg,
+                            'errors' => ['logo_path' => [$errorMsg]]
+                        ], 500);
+                    }
+                    
+                    return redirect()->back()->withErrors(['logo_path' => $errorMsg]);
                 }
 
                 // Set file permissions to 644 (readable by everyone)
@@ -201,14 +248,29 @@ class IndexPageController extends Controller
                     'line' => $e->getLine(),
                     'trace' => $e->getTraceAsString()
                 ]);
-                return redirect()->back()->withErrors([
-                    'logo_path' => 'Upload failed: ' . $e->getMessage()
-                ]);
+                
+                $errorMsg = 'Upload failed: ' . $e->getMessage();
+                if ($request->wantsJson() || $request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $errorMsg,
+                        'errors' => ['logo_path' => [$errorMsg]]
+                    ], 500);
+                }
+                
+                return redirect()->back()->withErrors(['logo_path' => $errorMsg]);
             }
         } else {
-            return redirect()->back()->withErrors([
-                'logo_path' => 'No logo file was uploaded.'
-            ]);
+            $errorMsg = 'No logo file was uploaded.';
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $errorMsg,
+                    'errors' => ['logo_path' => [$errorMsg]]
+                ], 422);
+            }
+            
+            return redirect()->back()->withErrors(['logo_path' => $errorMsg]);
         }
 
         $validated['index_page_setting_id'] = $indexPage->id;
@@ -218,7 +280,16 @@ class IndexPageController extends Controller
             $validated['display_order'] = ($maxOrder ?? 0) + 1;
         }
 
-        IndexPageLogo::create($validated);
+        $logo = IndexPageLogo::create($validated);
+
+        // Return JSON for AJAX requests
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Logo added successfully!',
+                'logo' => $logo
+            ]);
+        }
 
         return redirect()->back()->with('success', 'Logo added successfully!');
     }
