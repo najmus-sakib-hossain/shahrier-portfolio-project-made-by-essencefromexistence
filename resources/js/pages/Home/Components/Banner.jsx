@@ -61,7 +61,7 @@ const Banner = ({ hero, statistics }) => {
           </div>
         </div>
 
-        <div className="w-full flex min-h-48 ">
+        <div className="w-full flex min-h-36">
           <div className="w-2/3 py-6 bg-[#3b3939d3] bg-opacity-10 backdrop-blur-sm min-h-full">
             <div className="w-11/12 mx-auto h-full flex items-center justify-center">
               <div className="h-full grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-auto">
