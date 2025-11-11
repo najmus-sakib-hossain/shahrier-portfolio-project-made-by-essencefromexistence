@@ -144,6 +144,7 @@ export default function IndexPageManagement({ indexPage }: Props) {
             console.log('File appended to FormData:', logoForm.data.logo_path.name);
         } else {
             console.error('No file to append!');
+            return;
         }
 
         // Debug: Log FormData contents
@@ -152,23 +153,42 @@ export default function IndexPageManagement({ indexPage }: Props) {
             console.log(pair[0] + ': ', pair[1]);
         }
 
-        // Use router.post with manual FormData (don't set Content-Type - browser sets it with boundary)
-        router.post("/admin/index-page/logos", formData, {
-            preserveScroll: true,
-            onSuccess: () => {
-                logoForm.reset();
-                setLogoPreview(null);
-                console.log('Logo added successfully!');
+        // Use native fetch to bypass Inertia's FormData handling issues
+        fetch("/admin/index-page/logos", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                'X-Requested-With': 'XMLHttpRequest',
             },
-            onError: (errors: any) => {
-                console.error('Logo add errors:', errors);
-                console.error('Error details:', JSON.stringify(errors, null, 2));
-                // Display a user-friendly alert with the error
-                if (typeof errors === 'object') {
-                    const errorMessages = Object.entries(errors)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw data;
+                });
+            }
+            return response.json();
+        })
+        .then(() => {
+            logoForm.reset();
+            setLogoPreview(null);
+            console.log('Logo added successfully!');
+            // Reload the page to show new logo
+            window.location.reload();
+        })
+        .catch((errors: any) => {
+            console.error('Logo add errors:', errors);
+            console.error('Error details:', JSON.stringify(errors, null, 2));
+            // Display a user-friendly alert with the error
+            if (errors && typeof errors === 'object') {
+                if (errors.errors) {
+                    const errorMessages = Object.entries(errors.errors)
                         .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
                         .join('\n');
                     alert('Failed to add logo:\n\n' + errorMessages);
+                } else if (errors.message) {
+                    alert('Error: ' + errors.message);
                 }
             }
         });
@@ -188,23 +208,42 @@ export default function IndexPageManagement({ indexPage }: Props) {
                 console.log('File appended to FormData for update:', editLogoForm.data.logo_path.name);
             }
 
-            // Use router.post with manual FormData
-            router.post(`/admin/index-page/logos/${editingLogo.id}/update`, formData, {
-                preserveScroll: true,
-                onSuccess: () => {
-                    editLogoForm.reset();
-                    setLogoPreview(null);
-                    setEditingLogo(null);
-                    console.log('Logo updated successfully!');
+            // Use native fetch to bypass Inertia's FormData handling issues
+            fetch(`/admin/index-page/logos/${editingLogo.id}/update`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
-                onError: (errors: any) => {
-                    console.error('Logo update errors:', errors);
-                    console.error('Error details:', JSON.stringify(errors, null, 2));
-                    if (typeof errors === 'object') {
-                        const errorMessages = Object.entries(errors)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw data;
+                    });
+                }
+                return response.json();
+            })
+            .then(() => {
+                editLogoForm.reset();
+                setLogoPreview(null);
+                setEditingLogo(null);
+                console.log('Logo updated successfully!');
+                // Reload the page to show updated logo
+                window.location.reload();
+            })
+            .catch((errors: any) => {
+                console.error('Logo update errors:', errors);
+                console.error('Error details:', JSON.stringify(errors, null, 2));
+                if (errors && typeof errors === 'object') {
+                    if (errors.errors) {
+                        const errorMessages = Object.entries(errors.errors)
                             .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
                             .join('\n');
                         alert('Failed to update logo:\n\n' + errorMessages);
+                    } else if (errors.message) {
+                        alert('Error: ' + errors.message);
                     }
                 }
             });
