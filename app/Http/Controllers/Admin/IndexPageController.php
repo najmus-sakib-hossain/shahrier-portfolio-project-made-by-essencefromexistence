@@ -157,8 +157,9 @@ class IndexPageController extends Controller
                     ]);
                 }
 
-                // Store the file
-                $path = $file->store('index-page/logos', 'public');
+                // Store the file using public_uploads disk (no symlink needed)
+                $disk = config('app.env') === 'production' ? 'public_uploads' : 'public';
+                $path = $file->store('index-page/logos', $disk);
                 
                 if (!$path) {
                     \Log::error('Failed to store logo file', [
@@ -166,13 +167,25 @@ class IndexPageController extends Controller
                         'is_writable' => is_writable($storagePath),
                         'file_name' => $file->getClientOriginalName(),
                         'disk_free_space' => disk_free_space($storagePath),
+                        'disk_used' => $disk,
                     ]);
                     return redirect()->back()->withErrors([
                         'logo_path' => 'Failed to save file. Check storage permissions and disk space.'
                     ]);
                 }
 
-                $validated['logo_path'] = '/storage/' . $path;
+                // Set file permissions to 644 (readable by everyone)
+                $fullPath = $disk === 'public_uploads' 
+                    ? public_path('uploads/' . $path)
+                    : storage_path('app/public/' . $path);
+                    
+                if (file_exists($fullPath)) {
+                    chmod($fullPath, 0644);
+                }
+
+                $validated['logo_path'] = $disk === 'public_uploads' 
+                    ? '/uploads/' . $path 
+                    : '/storage/' . $path;
             } catch (\Exception $e) {
                 \Log::error('Logo upload error: ' . $e->getMessage(), [
                     'exception' => get_class($e),
@@ -286,13 +299,21 @@ class IndexPageController extends Controller
                     ]);
                 }
 
+                // Determine which disk to use
+                $disk = config('app.env') === 'production' ? 'public_uploads' : 'public';
+                
                 // Delete old logo if exists
-                if ($logo->logo_path && Storage::disk('public')->exists(str_replace('/storage/', '', $logo->logo_path))) {
-                    Storage::disk('public')->delete(str_replace('/storage/', '', $logo->logo_path));
+                if ($logo->logo_path) {
+                    $oldPath = str_replace(['/storage/', '/uploads/'], '', $logo->logo_path);
+                    $oldDisk = str_starts_with($logo->logo_path, '/uploads/') ? 'public_uploads' : 'public';
+                    
+                    if (Storage::disk($oldDisk)->exists($oldPath)) {
+                        Storage::disk($oldDisk)->delete($oldPath);
+                    }
                 }
 
                 // Store the file
-                $path = $file->store('index-page/logos', 'public');
+                $path = $file->store('index-page/logos', $disk);
                 
                 if (!$path) {
                     \Log::error('Failed to store logo file during update', [
@@ -301,13 +322,25 @@ class IndexPageController extends Controller
                         'file_name' => $file->getClientOriginalName(),
                         'logo_id' => $logo->id,
                         'disk_free_space' => disk_free_space($storagePath),
+                        'disk_used' => $disk,
                     ]);
                     return redirect()->back()->withErrors([
                         'logo_path' => 'Failed to save file. Check storage permissions and disk space.'
                     ]);
                 }
 
-                $validated['logo_path'] = '/storage/' . $path;
+                // Set file permissions to 644 (readable by everyone)
+                $fullPath = $disk === 'public_uploads' 
+                    ? public_path('uploads/' . $path)
+                    : storage_path('app/public/' . $path);
+                    
+                if (file_exists($fullPath)) {
+                    chmod($fullPath, 0644);
+                }
+
+                $validated['logo_path'] = $disk === 'public_uploads' 
+                    ? '/uploads/' . $path 
+                    : '/storage/' . $path;
             } catch (\Exception $e) {
                 \Log::error('Logo update error: ' . $e->getMessage(), [
                     'exception' => get_class($e),

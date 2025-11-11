@@ -46,8 +46,21 @@ class BookController extends Controller
 
         // Handle cover image upload
         if ($request->hasFile('cover_image')) {
-            $path = $request->file('cover_image')->store('books/covers', 'public');
-            $validated['cover_image'] = '/storage/' . $path;
+            $disk = config('app.env') === 'production' ? 'public_uploads' : 'public';
+            $path = $request->file('cover_image')->store('books/covers', $disk);
+            
+            // Set file permissions to 644 (readable by everyone)
+            $fullPath = $disk === 'public_uploads' 
+                ? public_path('uploads/' . $path)
+                : storage_path('app/public/' . $path);
+                
+            if (file_exists($fullPath)) {
+                chmod($fullPath, 0644);
+            }
+            
+            $validated['cover_image'] = $disk === 'public_uploads' 
+                ? '/uploads/' . $path 
+                : '/storage/' . $path;
         }
 
         Book::create($validated);
@@ -85,13 +98,32 @@ class BookController extends Controller
 
         // Handle cover image upload
         if ($request->hasFile('cover_image')) {
+            $disk = config('app.env') === 'production' ? 'public_uploads' : 'public';
+            
             // Delete old image if exists
-            if ($book->cover_image && Storage::disk('public')->exists(str_replace('/storage/', '', $book->cover_image))) {
-                Storage::disk('public')->delete(str_replace('/storage/', '', $book->cover_image));
+            if ($book->cover_image) {
+                $oldPath = str_replace(['/storage/', '/uploads/'], '', $book->cover_image);
+                $oldDisk = str_starts_with($book->cover_image, '/uploads/') ? 'public_uploads' : 'public';
+                
+                if (Storage::disk($oldDisk)->exists($oldPath)) {
+                    Storage::disk($oldDisk)->delete($oldPath);
+                }
             }
 
-            $path = $request->file('cover_image')->store('books/covers', 'public');
-            $validated['cover_image'] = '/storage/' . $path;
+            $path = $request->file('cover_image')->store('books/covers', $disk);
+            
+            // Set file permissions to 644 (readable by everyone)
+            $fullPath = $disk === 'public_uploads' 
+                ? public_path('uploads/' . $path)
+                : storage_path('app/public/' . $path);
+                
+            if (file_exists($fullPath)) {
+                chmod($fullPath, 0644);
+            }
+            
+            $validated['cover_image'] = $disk === 'public_uploads' 
+                ? '/uploads/' . $path 
+                : '/storage/' . $path;
         } else {
             // Don't update cover_image if no new file is uploaded
             unset($validated['cover_image']);

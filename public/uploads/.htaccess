@@ -1,0 +1,13 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine Off
+</IfModule>
+
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+
+# Allow access to uploaded files
+<FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|pdf|txt|doc|docx|xls|xlsx)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
