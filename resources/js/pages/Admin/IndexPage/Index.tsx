@@ -160,15 +160,29 @@ export default function IndexPageManagement({ indexPage }: Props) {
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                 'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
             },
         })
-        .then(response => {
+        .then(async response => {
+            const contentType = response.headers.get('content-type');
+            
             if (!response.ok) {
-                return response.json().then(data => {
+                // Try to get error message
+                if (contentType?.includes('application/json')) {
+                    const data = await response.json();
                     throw data;
-                });
+                } else {
+                    const text = await response.text();
+                    console.error('Server returned HTML error:', text.substring(0, 500));
+                    throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                }
             }
-            return response.json();
+            
+            if (contentType?.includes('application/json')) {
+                return response.json();
+            } else {
+                throw new Error('Server did not return JSON response');
+            }
         })
         .then(() => {
             logoForm.reset();
@@ -215,15 +229,29 @@ export default function IndexPageManagement({ indexPage }: Props) {
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                     'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
                 },
             })
-            .then(response => {
+            .then(async response => {
+                const contentType = response.headers.get('content-type');
+                
                 if (!response.ok) {
-                    return response.json().then(data => {
+                    // Try to get error message
+                    if (contentType?.includes('application/json')) {
+                        const data = await response.json();
                         throw data;
-                    });
+                    } else {
+                        const text = await response.text();
+                        console.error('Server returned HTML error:', text.substring(0, 500));
+                        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                    }
                 }
-                return response.json();
+                
+                if (contentType?.includes('application/json')) {
+                    return response.json();
+                } else {
+                    throw new Error('Server did not return JSON response');
+                }
             })
             .then(() => {
                 editLogoForm.reset();

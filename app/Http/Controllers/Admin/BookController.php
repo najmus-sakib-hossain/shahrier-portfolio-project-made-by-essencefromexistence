@@ -46,7 +46,8 @@ class BookController extends Controller
 
         // Handle cover image upload
         if ($request->hasFile('cover_image')) {
-            $disk = config('app.env') === 'production' ? 'public_uploads' : 'public';
+            $env = strtolower(config('app.env'));
+            $disk = ($env === 'production' || $env === 'prod') ? 'public_uploads' : 'public';
             $path = $request->file('cover_image')->store('books/covers', $disk);
             
             // Set file permissions to 644 (readable by everyone)
@@ -98,7 +99,8 @@ class BookController extends Controller
 
         // Handle cover image upload
         if ($request->hasFile('cover_image')) {
-            $disk = config('app.env') === 'production' ? 'public_uploads' : 'public';
+            $env = strtolower(config('app.env'));
+            $disk = ($env === 'production' || $env === 'prod') ? 'public_uploads' : 'public';
             
             // Delete old image if exists
             if ($book->cover_image) {

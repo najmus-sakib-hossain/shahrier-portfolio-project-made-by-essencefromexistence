@@ -158,7 +158,15 @@ class IndexPageController extends Controller
                 }
 
                 // Store the file using public_uploads disk (no symlink needed)
-                $disk = config('app.env') === 'production' ? 'public_uploads' : 'public';
+                $env = strtolower(config('app.env'));
+                $disk = ($env === 'production' || $env === 'prod') ? 'public_uploads' : 'public';
+                
+                \Log::info('File upload disk selection', [
+                    'env' => config('app.env'),
+                    'disk' => $disk,
+                    'file' => $file->getClientOriginalName(),
+                ]);
+                
                 $path = $file->store('index-page/logos', $disk);
                 
                 if (!$path) {
@@ -300,7 +308,8 @@ class IndexPageController extends Controller
                 }
 
                 // Determine which disk to use
-                $disk = config('app.env') === 'production' ? 'public_uploads' : 'public';
+                $env = strtolower(config('app.env'));
+                $disk = ($env === 'production' || $env === 'prod') ? 'public_uploads' : 'public';
                 
                 // Delete old logo if exists
                 if ($logo->logo_path) {
