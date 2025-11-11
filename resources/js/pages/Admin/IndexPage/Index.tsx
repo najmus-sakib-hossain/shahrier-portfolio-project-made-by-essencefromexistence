@@ -86,13 +86,22 @@ export default function IndexPageManagement({ indexPage }: Props) {
 
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
+        console.log('Logo file selected:', file);
         if (file) {
+            console.log('File details:', {
+                name: file.name,
+                size: file.size,
+                type: file.type,
+            });
             logoForm.setData("logo_path", file);
             const reader = new FileReader();
             reader.onloadend = () => {
                 setLogoPreview(reader.result as string);
+                console.log('Preview generated successfully');
             };
             reader.readAsDataURL(file);
+        } else {
+            console.error('No file selected!');
         }
     };
 
@@ -123,13 +132,27 @@ export default function IndexPageManagement({ indexPage }: Props) {
                 type: logoForm.data.logo_path.type,
             } : null
         });
+
+        // Manually create FormData to ensure file is properly sent
+        const formData = new FormData();
+        formData.append('name', logoForm.data.name);
+        formData.append('display_order', logoForm.data.display_order.toString());
+        formData.append('is_active', logoForm.data.is_active ? '1' : '0');
         
-        logoForm.post("/admin/index-page/logos", {
-            forceFormData: true,
+        if (logoForm.data.logo_path) {
+            formData.append('logo_path', logoForm.data.logo_path);
+            console.log('File appended to FormData:', logoForm.data.logo_path.name);
+        } else {
+            console.error('No file to append!');
+        }
+
+        // Use router.post with manual FormData
+        router.post("/admin/index-page/logos", formData, {
             preserveScroll: true,
             onSuccess: () => {
                 logoForm.reset();
                 setLogoPreview(null);
+                console.log('Logo added successfully!');
             },
             onError: (errors: any) => {
                 console.error('Logo add errors:', errors);
@@ -148,16 +171,35 @@ export default function IndexPageManagement({ indexPage }: Props) {
     const handleUpdateLogo = (e: FormEvent) => {
         e.preventDefault();
         if (editingLogo) {
-            editLogoForm.post(`/admin/index-page/logos/${editingLogo.id}/update`, {
-                forceFormData: true,
+            // Manually create FormData to ensure file is properly sent
+            const formData = new FormData();
+            formData.append('name', editLogoForm.data.name);
+            formData.append('display_order', editLogoForm.data.display_order.toString());
+            formData.append('is_active', editLogoForm.data.is_active ? '1' : '0');
+            
+            if (editLogoForm.data.logo_path) {
+                formData.append('logo_path', editLogoForm.data.logo_path);
+                console.log('File appended to FormData for update:', editLogoForm.data.logo_path.name);
+            }
+
+            // Use router.post with manual FormData
+            router.post(`/admin/index-page/logos/${editingLogo.id}/update`, formData, {
                 preserveScroll: true,
                 onSuccess: () => {
                     editLogoForm.reset();
                     setLogoPreview(null);
                     setEditingLogo(null);
+                    console.log('Logo updated successfully!');
                 },
                 onError: (errors: any) => {
                     console.error('Logo update errors:', errors);
+                    console.error('Error details:', JSON.stringify(errors, null, 2));
+                    if (typeof errors === 'object') {
+                        const errorMessages = Object.entries(errors)
+                            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+                            .join('\n');
+                        alert('Failed to update logo:\n\n' + errorMessages);
+                    }
                 }
             });
         }
