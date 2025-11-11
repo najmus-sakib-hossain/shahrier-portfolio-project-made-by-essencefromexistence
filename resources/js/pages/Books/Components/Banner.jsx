@@ -110,7 +110,7 @@ const Banner = () => {
               Thanks for coming here!
             </h2>
             <p className="text-center mt-4">
-              More contents coming soon...
+              More contents are coming soon...
             </p>
           </div>
         </Slider>
