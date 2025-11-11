@@ -77,7 +77,7 @@ class IndexPageController extends Controller
             'name' => 'required|string|max:255',
             'logo_path' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
             'display_order' => 'nullable|integer',
-            'is_active' => 'boolean',
+            'is_active' => 'nullable|boolean',
         ]);
 
         $indexPage = IndexPageSetting::first();
@@ -85,6 +85,9 @@ class IndexPageController extends Controller
         if (!$indexPage) {
             return redirect()->back()->with('error', 'Please configure index page settings first.');
         }
+
+        // Ensure is_active is boolean
+        $validated['is_active'] = $request->has('is_active') ? (bool)$request->is_active : true;
 
         // Handle logo upload
         if ($request->hasFile('logo_path')) {
@@ -109,8 +112,11 @@ class IndexPageController extends Controller
             'name' => 'required|string|max:255',
             'logo_path' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
             'display_order' => 'nullable|integer',
-            'is_active' => 'boolean',
+            'is_active' => 'nullable|boolean',
         ]);
+
+        // Ensure is_active is boolean
+        $validated['is_active'] = $request->has('is_active') ? (bool)$request->is_active : $logo->is_active;
 
         // Handle logo upload
         if ($request->hasFile('logo_path')) {
@@ -121,6 +127,9 @@ class IndexPageController extends Controller
 
             $path = $request->file('logo_path')->store('index-page/logos', 'public');
             $validated['logo_path'] = '/storage/' . $path;
+        } else {
+            // Don't update logo_path if no new file is uploaded
+            unset($validated['logo_path']);
         }
 
         $logo->update($validated);

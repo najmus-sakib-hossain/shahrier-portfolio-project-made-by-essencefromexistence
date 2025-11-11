@@ -11,7 +11,7 @@ const Navbar = () => {
 
   const getTextColor = () => {
     if (location.pathname === "/") return "text-slate-950";
-    if (location.pathname === "/home") return "text-white";
+    if (location.pathname === "/home") return "text-black";
     if (location.pathname === "/aboutme") return "text-slate-950";
     if (location.pathname === "/life-events") return "text-slate-950";
     if (location.pathname === "/entrepreneurship") return "text-slate-950";

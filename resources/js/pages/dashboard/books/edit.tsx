@@ -1,4 +1,4 @@
-import { FormEventHandler } from 'react'
+import { FormEventHandler, useState } from 'react'
 import { Head, Link, useForm } from '@inertiajs/react'
 import { AppSidebar } from '@/components/app-sidebar'
 import { SiteHeader } from '@/components/site-header'
@@ -14,15 +14,17 @@ import { ArrowLeft } from 'lucide-react'
 interface Book {
   id: number
   title: string
+  author: string | null
+  cover_image: string | null
   description: string | null
-  book_url: string
-  thumbnail: string | null
-  platform: string | null
-  category: string | null
-  duration: string | null
-  is_short: boolean
-  views: number
-  published_at: string | null
+  summary: string | null
+  highlights: string | null
+  review: string | null
+  rating: number
+  isbn: string | null
+  read_date: string | null
+  is_recommended: boolean
+  order: number
 }
 
 interface Props {
@@ -30,22 +32,44 @@ interface Props {
 }
 
 export default function EditBook({ book }: Props) {
-  const { data, setData, put, processing, errors } = useForm({
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
+
+  const { data, setData, post, processing, errors } = useForm({
     title: book.title || '',
+    author: book.author || '',
+    cover_image: null as File | null,
     description: book.description || '',
-    book_url: book.book_url || '',
-    thumbnail: book.thumbnail || '',
-    platform: book.platform || 'YouTube',
-    category: book.category || '',
-    duration: book.duration || '',
-    is_short: book.is_short || false,
-    views: book.views || 0,
-    published_at: book.published_at || '',
+    summary: book.summary || '',
+    highlights: book.highlights || '',
+    review: book.review || '',
+    rating: book.rating || 0,
+    isbn: book.isbn || '',
+    read_date: book.read_date || '',
+    is_recommended: book.is_recommended || false,
+    order: book.order || 0,
+    _method: 'PUT',
   })
 
   const handleSubmit: FormEventHandler = (e) => {
     e.preventDefault()
-    put(`/admin/books/${book.id}`)
+    post(`/admin/books/${book.id}`, {
+      forceFormData: true,
+      onSuccess: () => {
+        setPreviewImage(null)
+      },
+    })
+  }
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setData('cover_image', file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setPreviewImage(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
   }
 
   return (
@@ -97,6 +121,41 @@ export default function EditBook({ book }: Props) {
                   </div>
 
                   <div className="space-y-2">
+                    <Label htmlFor="author">Author</Label>
+                    <Input
+                      id="author"
+                      value={data.author}
+                      onChange={(e) => setData('author', e.target.value)}
+                      placeholder="Enter author name"
+                    />
+                    {errors.author && (
+                      <p className="text-sm text-red-600">{errors.author}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="cover_image">Cover Image</Label>
+                    <Input
+                      id="cover_image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                    />
+                    {errors.cover_image && (
+                      <p className="text-sm text-red-600">{errors.cover_image}</p>
+                    )}
+                    {(previewImage || book.cover_image) && (
+                      <div className="mt-4">
+                        <img
+                          src={previewImage || book.cover_image || ''}
+                          alt="Cover preview"
+                          className="w-48 h-64 object-cover rounded-lg"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
                     <Label htmlFor="description">Description</Label>
                     <Textarea
                       id="description"
@@ -108,87 +167,91 @@ export default function EditBook({ book }: Props) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="book_url">Book URL</Label>
-                    <Input
-                      id="book_url"
-                      value={data.book_url}
-                      onChange={(e) => setData('book_url', e.target.value)}
-                      placeholder="https://youtube.com/watch?v=..."
-                      required
+                    <Label htmlFor="summary">Summary</Label>
+                    <Textarea
+                      id="summary"
+                      value={data.summary}
+                      onChange={(e) => setData('summary', e.target.value)}
+                      placeholder="Enter book summary"
+                      rows={4}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="thumbnail">Thumbnail URL</Label>
-                    <Input
-                      id="thumbnail"
-                      value={data.thumbnail}
-                      onChange={(e) => setData('thumbnail', e.target.value)}
-                      placeholder="https://example.com/thumbnail.jpg"
+                    <Label htmlFor="highlights">Highlights</Label>
+                    <Textarea
+                      id="highlights"
+                      value={data.highlights}
+                      onChange={(e) => setData('highlights', e.target.value)}
+                      placeholder="Enter key highlights from the book"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="review">Review</Label>
+                    <Textarea
+                      id="review"
+                      value={data.review}
+                      onChange={(e) => setData('review', e.target.value)}
+                      placeholder="Enter your review"
+                      rows={3}
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="platform">Platform</Label>
+                      <Label htmlFor="rating">Rating (0-5)</Label>
                       <Input
-                        id="platform"
-                        value={data.platform}
-                        onChange={(e) => setData('platform', e.target.value)}
-                        placeholder="YouTube, Vimeo, etc."
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="category">Category</Label>
-                      <Input
-                        id="category"
-                        value={data.category}
-                        onChange={(e) => setData('category', e.target.value)}
-                        placeholder="e.g., Tutorial, Vlog"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="duration">Duration (e.g., 10:30)</Label>
-                      <Input
-                        id="duration"
-                        value={data.duration}
-                        onChange={(e) => setData('duration', e.target.value)}
-                        placeholder="10:30"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="views">Views</Label>
-                      <Input
-                        id="views"
+                        id="rating"
                         type="number"
-                        value={data.views}
-                        onChange={(e) => setData('views', parseInt(e.target.value) || 0)}
+                        min="0"
+                        max="5"
+                        value={data.rating}
+                        onChange={(e) => setData('rating', parseInt(e.target.value) || 0)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="isbn">ISBN</Label>
+                      <Input
+                        id="isbn"
+                        value={data.isbn}
+                        onChange={(e) => setData('isbn', e.target.value)}
+                        placeholder="Enter ISBN"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="published_at">Publish Date</Label>
-                    <Input
-                      id="published_at"
-                      type="date"
-                      value={data.published_at}
-                      onChange={(e) => setData('published_at', e.target.value)}
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="read_date">Read Date</Label>
+                      <Input
+                        id="read_date"
+                        type="date"
+                        value={data.read_date}
+                        onChange={(e) => setData('read_date', e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="order">Display Order</Label>
+                      <Input
+                        id="order"
+                        type="number"
+                        value={data.order}
+                        onChange={(e) => setData('order', parseInt(e.target.value) || 0)}
+                      />
+                    </div>
                   </div>
 
                   <div className="flex items-center space-x-2">
                     <Switch
-                      id="is_short"
-                      checked={data.is_short}
-                      onCheckedChange={(checked) => setData('is_short', checked)}
+                      id="is_recommended"
+                      checked={data.is_recommended}
+                      onCheckedChange={(checked) => setData('is_recommended', checked)}
                     />
-                    <Label htmlFor="is_short">Short Book (&lt; 60 seconds)</Label>
+                    <Label htmlFor="is_recommended">Recommended Book</Label>
                   </div>
                 </CardContent>
               </Card>

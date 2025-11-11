@@ -122,7 +122,7 @@ export default function IndexPageManagement({ indexPage }: Props) {
     const handleUpdateLogo = (e: FormEvent) => {
         e.preventDefault();
         if (editingLogo) {
-            editLogoForm.post(`/admin/index-page/logos/${editingLogo.id}`, {
+            editLogoForm.post(`/admin/index-page/logos/${editingLogo.id}/update`, {
                 forceFormData: true,
                 onSuccess: () => {
                     editLogoForm.reset();

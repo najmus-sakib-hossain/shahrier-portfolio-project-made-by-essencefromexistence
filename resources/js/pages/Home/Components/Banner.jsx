@@ -51,6 +51,20 @@ const Banner = ({ hero, statistics }) => {
               </div>
             </div>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             <div className="py-6 bg-[#3b3939d3] bg-opacity-10 backdrop-blur-sm">
               <div className="w-11/12 mx-auto">
                 <div className="grid grid-cols-2 lg:grid-cols-7 gap-8 lg:gap-auto">
@@ -67,6 +81,12 @@ const Banner = ({ hero, statistics }) => {
                 </div>
               </div>
             </div>
+
+
+
+
+
+
           </div>
 
           {/* Right Section */}
@@ -82,6 +102,17 @@ const Banner = ({ hero, statistics }) => {
                 {hero?.description || "Connecting brands & people through experiences."}
               </h1>
             </div>
+
+
+
+
+
+
+
+
+
+
+
 
             <div className="py-[46px] bg-slate-900 h-[16.7vh]">
               <div className="flex items-center justify-center gap-6 flex-wrap px-4">
@@ -124,6 +155,11 @@ const Banner = ({ hero, statistics }) => {
                 )}
               </div>
             </div>
+
+
+
+
+
           </div>
 
         </div>
