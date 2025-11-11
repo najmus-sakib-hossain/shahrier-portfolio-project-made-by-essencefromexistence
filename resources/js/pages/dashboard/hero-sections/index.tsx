@@ -68,6 +68,7 @@ export default function HeroSectionsIndex({ heroSections }: Props) {
                 <TableRow>
                   <TableHead>Title</TableHead>
                   <TableHead>Subtitle</TableHead>
+                  <TableHead>Description</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Order</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -76,7 +77,7 @@ export default function HeroSectionsIndex({ heroSections }: Props) {
               <TableBody>
                 {heroSections.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       No hero sections found. Create your first one!
                     </TableCell>
                   </TableRow>
@@ -85,6 +86,7 @@ export default function HeroSectionsIndex({ heroSections }: Props) {
                     <TableRow key={hero.id}>
                       <TableCell className="font-medium">{hero.title}</TableCell>
                       <TableCell>{hero.subtitle}</TableCell>
+                      <TableCell>{hero.description}</TableCell>
                       <TableCell>
                         <Badge variant={hero.is_active ? 'default' : 'secondary'}>
                           {hero.is_active ? 'Active' : 'Inactive'}

@@ -97,8 +97,9 @@ class IndexPageController extends Controller
 
         $validated['index_page_setting_id'] = $indexPage->id;
         
-        if (!isset($validated['display_order'])) {
-            $validated['display_order'] = IndexPageLogo::where('index_page_setting_id', $indexPage->id)->max('display_order') + 1;
+        if (!isset($validated['display_order']) || $validated['display_order'] == 0) {
+            $maxOrder = IndexPageLogo::where('index_page_setting_id', $indexPage->id)->max('display_order');
+            $validated['display_order'] = ($maxOrder ?? 0) + 1;
         }
 
         IndexPageLogo::create($validated);

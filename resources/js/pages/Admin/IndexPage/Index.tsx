@@ -66,7 +66,7 @@ export default function IndexPageManagement({ indexPage }: Props) {
             onSuccess: () => {
                 setPreviewImage(null);
             },
-            onError: (errors) => {
+            onError: (errors: any) => {
                 console.error('Update errors:', errors);
             }
         });
@@ -112,10 +112,14 @@ export default function IndexPageManagement({ indexPage }: Props) {
         e.preventDefault();
         logoForm.post("/admin/index-page/logos", {
             forceFormData: true,
+            preserveScroll: true,
             onSuccess: () => {
                 logoForm.reset();
                 setLogoPreview(null);
             },
+            onError: (errors: any) => {
+                console.error('Logo add errors:', errors);
+            }
         });
     };
 
@@ -124,11 +128,15 @@ export default function IndexPageManagement({ indexPage }: Props) {
         if (editingLogo) {
             editLogoForm.post(`/admin/index-page/logos/${editingLogo.id}/update`, {
                 forceFormData: true,
+                preserveScroll: true,
                 onSuccess: () => {
                     editLogoForm.reset();
                     setLogoPreview(null);
                     setEditingLogo(null);
                 },
+                onError: (errors: any) => {
+                    console.error('Logo update errors:', errors);
+                }
             });
         }
     };
@@ -289,6 +297,11 @@ export default function IndexPageManagement({ indexPage }: Props) {
                                         className="mt-1"
                                         required
                                     />
+                                    {(editingLogo ? editLogoForm.errors.name : logoForm.errors.name) && (
+                                        <p className="text-red-500 text-sm mt-1">
+                                            {editingLogo ? editLogoForm.errors.name : logoForm.errors.name}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -301,6 +314,11 @@ export default function IndexPageManagement({ indexPage }: Props) {
                                         className="mt-1"
                                         required={!editingLogo}
                                     />
+                                    {(editingLogo ? editLogoForm.errors.logo_path : logoForm.errors.logo_path) && (
+                                        <p className="text-red-500 text-sm mt-1">
+                                            {editingLogo ? editLogoForm.errors.logo_path : logoForm.errors.logo_path}
+                                        </p>
+                                    )}
                                     {(logoPreview || (editingLogo && !logoPreview)) && (
                                         <div className="mt-4">
                                             <img
