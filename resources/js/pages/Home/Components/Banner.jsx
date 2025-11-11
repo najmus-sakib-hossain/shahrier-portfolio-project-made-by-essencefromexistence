@@ -68,9 +68,9 @@ const Banner = ({ hero, statistics }) => {
             <div className="py-6 bg-[#3b3939d3] bg-opacity-10 backdrop-blur-sm">
               <div className="w-11/12 mx-auto">
                 <div className="grid grid-cols-2 lg:grid-cols-7 gap-8 lg:gap-auto">
-                  {statistics && statistics.map((stat) => (
+                  {statistics && statistics.filter((stat, index, self) => self.findIndex(s => s.label === stat.label) === index).map((stat) => (
                     <div key={stat.id}>
-                      <h1 className="text-white font-semibold text-4xl mb-3 text-center">
+                      <h1 className="text-white font-semibold text-2xl mb-3 text-center">
                         {stat.value}
                       </h1>
                       <p className="text-lg text-slate-300 text-center">
